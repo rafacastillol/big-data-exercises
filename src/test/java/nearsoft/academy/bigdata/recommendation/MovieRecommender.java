@@ -93,9 +93,6 @@ public class MovieRecommender {
       if (state == 7) {
         this.addPreference(data, userID, productID, score);
         this.totalReviews++;
-        if (this.totalReviews % 1000 == 0) {
-          System.out.println(this.totalReviews);
-        }
         state = 0;
       }
       line = reader.readLine();
@@ -137,13 +134,10 @@ public class MovieRecommender {
   }
 
   public List<String> getRecommendationsForUser(String userID) throws TasteException {
-    System.out.println("Getting recs");
     long numericUserID = this.users.get(userID);
     List<String> recs = new ArrayList<String>();
     
     List<RecommendedItem> recommendations = this.recommender.recommend(numericUserID, 3);
-    System.out.println("Got recs");
-    System.out.println(recommendations);
 
     List<String> recommendationIDs = new ArrayList<String>(recommendations.size());
     for (RecommendedItem recommendation: recommendations) {
