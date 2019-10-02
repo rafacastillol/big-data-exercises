@@ -32,7 +32,6 @@ import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 
 public class MovieRecommender {
-  private String path;
   private long totalReviews;
   private Map<String, Long> users;
   private Map<Long, String> products;
@@ -40,7 +39,6 @@ public class MovieRecommender {
   
 
   public MovieRecommender(String path) throws IOException, TasteException {
-    this.path = path;
     this.totalReviews = 0;
     this.users = new HashMap<String, Long>();
 
@@ -60,11 +58,16 @@ public class MovieRecommender {
     long nextUserID = 0;
     long nextProductID = 0;
 
+    // State represents how much of a score we've read: The lowest bit represents whether or not
+    // we have read a productId, the second lowest whether we have read a userID, and the third
+    // whether or not we have read a score. This is done in case the fields aren't in the same order
+    // for some reason. We can manipulate these bits using bitwise operations.
     int state = 0;
 
     long userID = 0;
     long productID = 0;
     float score = 0.0f;
+    // Podemos convertir esto despues a un DataModel
     FastByIDMap<Collection<Preference>> data = new FastByIDMap<Collection<Preference>>();
     while (line != null) {
       if (line.startsWith("product/productId:")) {
@@ -91,34 +94,25 @@ public class MovieRecommender {
       }
 
       if (state == 7) {
-        this.addPreference(data, userID, productID, score);
+        Collection<Preference> prefs = data.get(userID);
+        if (prefs == null) {
+          prefs = new ArrayList<Preference>(2);
+          data.put(userID, prefs);
+        }
+        Preference pref = new GenericPreference(userID, productID, score);
+        prefs.add(pref);
         this.totalReviews++;
         state = 0;
       }
       line = reader.readLine();
     }
 
+    // we don't really need to look numerical ids anymore.
     this.products = products.inverse();
 
     reader.close();
 
     return new GenericDataModel(GenericDataModel.toDataMap(data, true));
-  }
-
-  public void addPreference(
-      FastByIDMap<Collection<Preference>> data,
-      long userID, long productID, float score) {
-    Collection<Preference> prefs = data.get(userID);
-    if (prefs == null) {
-      prefs = new ArrayList<Preference>(2);
-      data.put(userID, prefs);
-    }
-    Preference pref = new GenericPreference(
-      userID,
-      productID,
-      score
-    );
-    prefs.add(pref);
   }
 
   public long getTotalReviews() {
