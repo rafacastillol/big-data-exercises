@@ -66,7 +66,7 @@ public class MovieRecommender {
     long userID = 0;
     long productID = 0;
     float score = 0.0f;
-    // Podemos convertir esto despues a un DataModel
+    // We can turn this into a DataModel later
     FastByIDMap<Collection<Preference>> data = new FastByIDMap<Collection<Preference>>();
     while (line != null) {
       if (line.startsWith("p")) {
@@ -106,7 +106,7 @@ public class MovieRecommender {
       line = reader.readLine();
     }
 
-    // we don't really need to look numerical ids anymore.
+    // we don't really need to look up numerical ids anymore.
     this.products = products.inverse();
 
     reader.close();
