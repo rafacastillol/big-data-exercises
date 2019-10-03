@@ -69,8 +69,8 @@ public class MovieRecommender {
     // Podemos convertir esto despues a un DataModel
     FastByIDMap<Collection<Preference>> data = new FastByIDMap<Collection<Preference>>();
     while (line != null) {
-      if (line.startsWith("product/productId:")) {
-        String productString = line.split(": ")[1];
+      if (line.startsWith("p")) {
+        String productString = line.substring(19);
         state |= 1;
 
         if (!products.containsKey(productString)) {
@@ -78,8 +78,8 @@ public class MovieRecommender {
         }
         productID = products.get(productString);
       }
-      else if (line.startsWith("review/userId")) {
-        String userString = line.split(": ")[1];
+      else if (line.startsWith("review/u")) {
+        String userString = line.substring(15);
         state |= 2;
 
         if (!this.users.containsKey(userString)) {
@@ -87,8 +87,8 @@ public class MovieRecommender {
         }
         userID = this.users.get(userString);
       }
-      else if (line.startsWith("review/score")) {
-        score = Float.parseFloat(line.split(": ")[1]);
+      else if (line.startsWith("review/sc")) {
+        score = Float.parseFloat(line.substring(14));
         state |= 4;
       }
 
