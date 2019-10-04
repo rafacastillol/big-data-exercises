@@ -1,17 +1,13 @@
 package nearsoft.academy.bigdata.recommendation;
 
 
-import java.io.BufferedReader;
-import java.io.FileInputStream;
+import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.zip.GZIPInputStream;
 
 import org.apache.mahout.cf.taste.common.TasteException;
 import org.apache.mahout.cf.taste.impl.common.FastByIDMap;
@@ -26,6 +22,7 @@ import org.apache.mahout.cf.taste.neighborhood.UserNeighborhood;
 import org.apache.mahout.cf.taste.recommender.RecommendedItem;
 import org.apache.mahout.cf.taste.recommender.UserBasedRecommender;
 import org.apache.mahout.cf.taste.similarity.UserSimilarity;
+import org.apache.mahout.common.iterator.FileLineIterator;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
@@ -39,7 +36,7 @@ public class MovieRecommender {
 
   public MovieRecommender(String path) throws IOException, TasteException {
     this.totalReviews = 0;
-    this.users = new HashMap<String, Long>(900000);
+    this.users = new HashMap<String, Long>();
 
     DataModel model = this.loadReviews(path);
     UserSimilarity similarity = new PearsonCorrelationSimilarity(model);
@@ -48,11 +45,9 @@ public class MovieRecommender {
   }
 
   private DataModel loadReviews(String path) throws IOException {
-    BufferedReader reader;
-    InputStream stream = new GZIPInputStream(new FileInputStream(path));
-    reader = new BufferedReader(new InputStreamReader(stream, "US-ASCII"));
-    String line = reader.readLine();
-    BiMap<String, Long> products = HashBiMap.create(260000);
+    File file = new File(path);
+    FileLineIterator iterator = new FileLineIterator(file);
+    BiMap<String, Long> products = HashBiMap.create();
 
     long nextUserID = 0;
     long nextProductID = 0;
@@ -62,39 +57,46 @@ public class MovieRecommender {
     float score = 0.0f;
     // We can turn this into a DataModel later
     FastByIDMap<Collection<Preference>> data = new FastByIDMap<Collection<Preference>>();
-    while (line != null) {
-      if (line.startsWith("p")) {
-        String productString = line.substring(19);
-
-        if (!products.containsKey(productString)) {
-          products.put(productString, nextProductID++);
-        }
-        productID = products.get(productString);
-      } else if (line.startsWith("review/u")) {
-        String userString = line.substring(15);
-
-        if (!this.users.containsKey(userString)) {
-          this.users.put(userString, nextUserID++);
-        }
-        userID = this.users.get(userString);
-      } else if (line.startsWith("review/sc")) {
-        score = Float.parseFloat(line.substring(14));
-        Collection<Preference> prefs = data.get(userID);
-        if (prefs == null) {
-          prefs = new ArrayList<Preference>(64);
-          data.put(userID, prefs);
-        }
-        Preference pref = new GenericPreference(userID, productID, score);
-        prefs.add(pref);
-        this.totalReviews++;
+    while (iterator.hasNext()) {
+      String line = iterator.next();
+      if (line.length() < 9) {
+        continue;
       }
-      line = reader.readLine();
+      String prefix = line.substring(0, 9);
+      switch (prefix) {
+        case "product/p":
+          String productString = line.substring(19);
+
+          if (!products.containsKey(productString)) {
+            products.put(productString, nextProductID++);
+          }
+          productID = products.get(productString);
+          break;
+        case "review/us":
+          String userString = line.substring(15);
+
+          if (!this.users.containsKey(userString)) {
+            users.put(userString, nextUserID++);
+          }
+          userID = users.get(userString);
+
+          break;
+        case "review/sc":
+          score = Float.parseFloat(line.substring(14));
+          Collection<Preference> prefs = data.get(userID);
+          if (prefs == null) {
+            prefs = new ArrayList<Preference>(16);
+            data.put(userID, prefs);
+          }
+          Preference pref = new GenericPreference(userID, productID, score);
+          prefs.add(pref);
+          totalReviews++;
+          break;
+      }
     }
 
     // we don't really need to look up numerical ids anymore.
     this.products = products.inverse();
-
-    reader.close();
     
     return new GenericDataModel(GenericDataModel.toDataMap(data, true));
   }
@@ -113,7 +115,7 @@ public class MovieRecommender {
 
   public List<String> getRecommendationsForUser(String userID) throws TasteException {
     long numericUserID = this.users.get(userID);
-    List<String> recs = new ArrayList<String>();
+    List<String> recs = new ArrayList<String>(3);
     
     List<RecommendedItem> recommendations = this.recommender.recommend(numericUserID, 3);
 
