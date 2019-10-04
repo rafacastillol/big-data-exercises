@@ -39,7 +39,7 @@ public class MovieRecommender {
 
   public MovieRecommender(String path) throws IOException, TasteException {
     this.totalReviews = 0;
-    this.users = new HashMap<String, Long>();
+    this.users = new HashMap<String, Long>(900000);
 
     DataModel model = this.loadReviews(path);
     UserSimilarity similarity = new PearsonCorrelationSimilarity(model);
@@ -52,16 +52,10 @@ public class MovieRecommender {
     InputStream stream = new GZIPInputStream(new FileInputStream(path));
     reader = new BufferedReader(new InputStreamReader(stream, "US-ASCII"));
     String line = reader.readLine();
-    BiMap<String, Long> products = HashBiMap.create();
+    BiMap<String, Long> products = HashBiMap.create(260000);
 
     long nextUserID = 0;
     long nextProductID = 0;
-
-    // State represents how much of a score we've read: The lowest bit represents whether or not
-    // we have read a productId, the second lowest whether we have read a userID, and the third
-    // whether or not we have read a score. This is done in case the fields aren't in the same order
-    // for some reason. We can manipulate these bits using bitwise operations.
-    int state = 0;
 
     long userID = 0;
     long productID = 0;
@@ -71,37 +65,28 @@ public class MovieRecommender {
     while (line != null) {
       if (line.startsWith("p")) {
         String productString = line.substring(19);
-        state |= 1;
 
         if (!products.containsKey(productString)) {
           products.put(productString, nextProductID++);
         }
         productID = products.get(productString);
-      }
-      else if (line.startsWith("review/u")) {
+      } else if (line.startsWith("review/u")) {
         String userString = line.substring(15);
-        state |= 2;
 
         if (!this.users.containsKey(userString)) {
           this.users.put(userString, nextUserID++);
         }
         userID = this.users.get(userString);
-      }
-      else if (line.startsWith("review/sc")) {
+      } else if (line.startsWith("review/sc")) {
         score = Float.parseFloat(line.substring(14));
-        state |= 4;
-      }
-
-      if (state == 7) {
         Collection<Preference> prefs = data.get(userID);
         if (prefs == null) {
-          prefs = new ArrayList<Preference>(2);
+          prefs = new ArrayList<Preference>(64);
           data.put(userID, prefs);
         }
         Preference pref = new GenericPreference(userID, productID, score);
         prefs.add(pref);
         this.totalReviews++;
-        state = 0;
       }
       line = reader.readLine();
     }
@@ -110,7 +95,7 @@ public class MovieRecommender {
     this.products = products.inverse();
 
     reader.close();
-
+    
     return new GenericDataModel(GenericDataModel.toDataMap(data, true));
   }
 
