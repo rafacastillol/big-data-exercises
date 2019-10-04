@@ -115,11 +115,10 @@ public class MovieRecommender {
 
   public List<String> getRecommendationsForUser(String userID) throws TasteException {
     long numericUserID = this.users.get(userID);
-    List<String> recs = new ArrayList<String>(3);
-    
-    List<RecommendedItem> recommendations = this.recommender.recommend(numericUserID, 3);
 
+    List<RecommendedItem> recommendations = this.recommender.recommend(numericUserID, 3);
     List<String> recommendationIDs = new ArrayList<String>(recommendations.size());
+
     for (RecommendedItem recommendation: recommendations) {
       recommendationIDs.add(this.products.get(recommendation.getItemID()));
     }
