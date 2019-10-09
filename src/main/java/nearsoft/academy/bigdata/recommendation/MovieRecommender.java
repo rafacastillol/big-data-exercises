@@ -40,7 +40,7 @@ public class MovieRecommender {
 
     DataModel model = this.loadReviews(path);
     UserSimilarity similarity = new PearsonCorrelationSimilarity(model);
-    UserNeighborhood neighborhood = new ThreadedThresholdUserNeighborhood(0.1, similarity, model, 5);
+    UserNeighborhood neighborhood = new ThresholdUserNeighborhood(0.1, similarity, model);
     this.recommender = new GenericUserBasedRecommender(model, neighborhood, similarity);
   }
 
