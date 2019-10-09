@@ -40,7 +40,7 @@ public class MovieRecommender {
 
     DataModel model = this.loadReviews(path);
     UserSimilarity similarity = new PearsonCorrelationSimilarity(model);
-    UserNeighborhood neighborhood = new ThresholdUserNeighborhood(0.1, similarity, model);
+    UserNeighborhood neighborhood = new ThreadedThresholdUserNeighborhood(0.1, similarity, model, 5);
     this.recommender = new GenericUserBasedRecommender(model, neighborhood, similarity);
   }
 
@@ -59,6 +59,7 @@ public class MovieRecommender {
     FastByIDMap<Collection<Preference>> data = new FastByIDMap<Collection<Preference>>();
     while (iterator.hasNext()) {
       String line = iterator.next();
+
       if (line.length() < 9) {
         continue;
       }
